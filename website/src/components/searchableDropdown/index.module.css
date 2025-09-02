@@ -1,0 +1,236 @@
+.searchableDropdown {
+    position: relative;
+    width: 100%;
+}
+
+.inputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.floatingLabel {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: transparent;
+    padding: 0 4px;
+    font-size: 0.875rem;
+    color: #666;
+    pointer-events: none;
+    transition: all 0.2s ease-in-out;
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    font-weight: 400;
+    z-index: 1;
+}
+
+.floatingLabel.floated {
+    top: 0;
+    left: 8px;
+    font-size: 0.75rem;
+    color: #213547;
+    font-weight: 500;
+}
+
+.input {
+    width: 100%;
+    padding: 12px 40px 12px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    background-color: white;
+    transition: all 0.2s ease-in-out;
+    outline: none;
+}
+
+/* Adjust padding when clear button is present */
+.searchableDropdown.hasValue .input {
+    padding-right: 60px;
+}
+
+.input:focus {
+    border-color: #646cff;
+    box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.1);
+}
+
+.input:disabled {
+    background-color: #f9fafb;
+    color: #6b7280;
+    cursor: not-allowed;
+}
+
+.clearButton {
+    position: absolute;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: none;
+    color: #6b7280;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease-in-out;
+    line-height: 1;
+}
+
+.clearButton:hover {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.clearButton:active {
+    background-color: #e5e7eb;
+}
+
+.arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    color: #6b7280;
+    transition: all 0.2s ease-in-out;
+    pointer-events: none;
+    user-select: none;
+}
+
+.arrow.withClear {
+    right: 8px;
+}
+
+.arrow.open {
+    transform: translateY(-50%) rotate(180deg);
+    color: #646cff;
+}
+
+.dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-height: 200px;
+    overflow: hidden;
+}
+
+.optionsList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.option {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    color: #374151;
+    transition: all 0.15s ease-in-out;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.option:last-child {
+    border-bottom: none;
+}
+
+.option:hover,
+.option.highlighted {
+    background-color: #f3f4f6;
+    color: #213547;
+}
+
+.option.selected {
+    background-color: #646cff;
+    color: white;
+}
+
+.option.selected:hover,
+.option.selected.highlighted {
+    background-color: #5856eb;
+}
+
+.noOptions {
+    padding: 12px;
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-style: italic;
+    text-align: center;
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* Custom scrollbar for the options list */
+.optionsList::-webkit-scrollbar {
+    width: 6px;
+}
+
+.optionsList::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.optionsList::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.optionsList::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Focus styles for accessibility */
+.input:focus + .arrow {
+    color: #646cff;
+}
+
+/* Animation for dropdown appearance */
+.dropdown {
+    animation: slideDown 0.15s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .input {
+        padding: 14px 40px 14px 14px;
+        font-size: 1rem;
+    }
+    
+    .option {
+        padding: 12px 14px;
+        font-size: 1rem;
+    }
+    
+    .dropdown {
+        max-height: 180px;
+    }
+    
+    .optionsList {
+        max-height: 180px;
+    }
+}

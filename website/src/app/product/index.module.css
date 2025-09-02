@@ -1,0 +1,27 @@
+.product {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    width: 100%;
+}
+.product h2 {
+    margin-bottom: 0;
+}
+.productData {
+    display: flex;
+    flex-direction: row wrap;
+    justify-content: space-between;
+    width: 100%;
+}
+.options {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+}
+.related {
+    padding: 20px;
+    display: flex;
+    gap: 40px;   
+    overflow-x: scroll;
+}

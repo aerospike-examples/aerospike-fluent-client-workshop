@@ -1,0 +1,26 @@
+.images {
+    display: flex;
+    height: 500px;
+    gap: 40px;
+}
+.thumbnails {
+    display: flex;
+    flex-direction: column;
+    width: 48px;
+    gap: 10px;
+}
+.thumbnail {
+    border: 1px solid lightgray;
+    border-radius: 5px;
+    overflow: hidden;
+}
+.selected {
+    border-color: blue;
+}
+.selectedImg {
+    height: 500px;
+}
+.selectedImg img {
+    height: 100%;
+    width: auto;
+}

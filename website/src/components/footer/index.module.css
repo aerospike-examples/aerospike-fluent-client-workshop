@@ -1,0 +1,27 @@
+.footer,
+.content,
+.attribution {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.content {
+    gap: 10px;
+    max-width: 800px;
+    text-align: center;
+}
+.footer {
+    width: 100%;
+    padding: 20px;
+    background-color: rgb(240, 240, 240);
+    color: rgb(48, 48, 48);
+    font-weight: 500;
+    font-size: 14px;
+}
+.footer a {
+    color: navy;
+}
+.footer a:hover {
+    text-decoration: underline 2px;
+}
