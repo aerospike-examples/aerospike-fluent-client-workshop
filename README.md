@@ -34,21 +34,19 @@ To run locally:
     cd external_jars
     ./registerJars.sh
     ```
-4. Building the front end (should be built by default, so only do this step if /spring-server/src/main/resources/static/index.html does not exist)
+4. __OPTIONAL__ Building the front end (should be built by default, so only do this step if /spring-server/src/main/resources/static/index.html does not exist)
     ```bash
     cd website
     npm install
     npm run build
     ```
-5. Install the data: Download the [kaggle fashion dataset](https://www.kaggle.com/datasets/paramaggarwal/fashion-product-images-dataset) and place the contents of the `/images/` and `/styles/` directories under the `/data` directory.
-
-6. Build the application: 
+5. Build the application: 
     ```bash
     cd spring-server
     mvn clean package -DskipTests
     ```
 
-7. Run the application
+6. Run the application
     Once this is done, start the Java application against your database 
     ```bash
     java -jar target/retail-demo-spring-1.0.0.jar
@@ -59,9 +57,11 @@ To run locally:
     java -jar target/retail-demo-spring-1.0.0.jar --aerospike.host=10.0.0.1 --aerospike.port=3100
     ```
 
-8. Create the indexes and load the product data into Aerospike:
+7. Create the indexes and load the product data into Aerospike:
     ```
     cd data
     curl -X POST "http://localhost:8080/rest/v1/data/create-indexes"
     curl -X POST "http://localhost:8080/rest/v1/data/load?dataPath=`pwd`"
     ```
+
+8. Point a browser at `localhost:8080` and you should be good to go! 
