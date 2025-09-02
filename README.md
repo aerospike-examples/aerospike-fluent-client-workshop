@@ -11,7 +11,7 @@ retail-demo/
 ├── external_jars/          # External JAR files (tracked in Git)
 ├── data/                   # Sample data files
 ├── config/                 # Configuration files
-├── aerospike/              # Aerospike configuration
+  ├── aerospike/              # Aerospike configuration
 └── .gitignore              # Multi-module gitignore
 ```
 
@@ -28,9 +28,14 @@ To run locally:
     1. Place the contents of the `/images/` directory in the `data/images/` directory.
     2. Place the contents of the `/styles/` directory in the `data/styles/` directory.
 2. Replace the `config/aerospike/features.replace.conf` and `config/vector/features.replace.conf` with a valid Aerospike feature key file.
-    >**Note**
-    >
-    >The feature key file must have a line item for `vector-service`
+3. Building the front end (should be built by default)
+    ```bash
+    cd website
+    npm install
+    npm run build
+    ```
+4. Building the Java application
+    First, the `external_jars` must be installed into the local Maven
 3. Create the containers:
     ```bash
     DOCKER_BUILDKIT=0 docker-compose up -d # using docker-compose standalone
@@ -46,4 +51,4 @@ To run locally:
     >**Note**
     >
     >This will take some time. It's loading ~44,000 fashion items, creating an embedding for each image, and 100,000 customer profiles 
-5. Access the site at http://localhost:4173
+5. Access the site at http://localhost:8080
