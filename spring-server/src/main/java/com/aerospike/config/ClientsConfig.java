@@ -17,12 +17,18 @@ public class ClientsConfig {
     @Value("${aerospike.port:3000}")
     private int aerospikePort;
 
+    @Value("${aerospike.user:#{null}")
+    private String aerospikeUserName;
+
+    @Value("${aerospike.port:#{null}}")
+    private String aerospikePassword;
+
     /**
      * Aerospike client configuration containing connection details
      * Services will use this to create their own client instances
      */
     @Bean
     public ClientConfiguration clientConfiguration() {
-        return new ClientConfiguration(aerospikeHost, aerospikePort);
+        return new ClientConfiguration(aerospikeHost, aerospikePort, aerospikeUserName, aerospikePassword);
     }
 } 

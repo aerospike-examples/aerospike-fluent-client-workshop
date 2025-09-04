@@ -69,13 +69,13 @@ public class DataLoadingService {
         String productId = jsonParsingService.extractProductId(filePath);
         
         // Format the product data
-        Map<String, Object> product = jsonParsingService.formatProductData(rawData, productId);
+        Map<String, Object> productMap = jsonParsingService.formatProductData(rawData, productId);
         
         // Load categories metadata
-        loadProductCategories(product);
+        loadProductCategories(productMap);
         
         // Store the product in Aerospike
-        keyValueService.storeProduct(product, productId);
+        keyValueService.storeProductMap(productMap, productId);
     }
 
     /**

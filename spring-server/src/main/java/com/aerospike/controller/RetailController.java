@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.aerospike.model.Product;
 import com.aerospike.service.KeyValueServiceInterface;
 
 /**
@@ -48,7 +49,7 @@ public class RetailController {
      * Returns an object containing the result of each query
      */
     @GetMapping("/home")
-    public ResponseEntity<Map<String, List<Map<String, Object>>>> getHome() {
+    public ResponseEntity<Map<String, List<Product>>> getHome() {
         try {
             KeyValueServiceInterface.QueryResult shoes = keyValueService.query("subCategory", "Shoes", 10);
             KeyValueServiceInterface.QueryResult bags = keyValueService.query("subCategory", "Bags", 10);
@@ -56,7 +57,7 @@ public class RetailController {
             KeyValueServiceInterface.QueryResult watches = keyValueService.query("subCategory", "Watches", 10);
             KeyValueServiceInterface.QueryResult headwear = keyValueService.query("subCategory", "Headwear", 10);
 
-            Map<String, List<Map<String, Object>>> result = new HashMap<>();
+            Map<String, List<Product>> result = new HashMap<>();
             result.put("Shoes", shoes.getProducts());
             result.put("Bags", bags.getProducts());
             result.put("Wallets", wallets.getProducts());
@@ -64,6 +65,7 @@ public class RetailController {
             result.put("Headwear", headwear.getProducts());
             return ResponseEntity.ok(result);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -77,7 +79,7 @@ public class RetailController {
     public ResponseEntity<Map<String, Object>> getProduct(@RequestParam("prod") String productId) {
         try {
             // Get product data through a key-value lookup
-            Optional<Map<String, Object>> productOptional = keyValueService.getProduct(productId);
+            Optional<Product> productOptional = keyValueService.getProduct(productId);
             
             if (productOptional.isEmpty()) {
                 return ResponseEntity.ok(Map.of("error", "Product not found"));
@@ -92,6 +94,7 @@ public class RetailController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.ok(Map.of("error", "Product not found"));
         }
     }
@@ -118,6 +121,7 @@ public class RetailController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -137,6 +141,7 @@ public class RetailController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -156,6 +161,7 @@ public class RetailController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -175,6 +181,7 @@ public class RetailController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -194,6 +201,7 @@ public class RetailController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -216,6 +224,7 @@ public class RetailController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }

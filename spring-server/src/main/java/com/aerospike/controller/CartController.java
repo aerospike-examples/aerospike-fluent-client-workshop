@@ -1,11 +1,20 @@
 package com.aerospike.controller;
 
-import com.aerospike.service.KeyValueServiceInterface;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.aerospike.model.Cart;
+import com.aerospike.service.KeyValueServiceInterface;
 
 @RestController
 @RequestMapping("/rest/v1/cart")
@@ -20,7 +29,7 @@ public class CartController {
     @GetMapping("/{userId}")
     public ResponseEntity<Map<String, Object>> getCart(@PathVariable String userId) {
         try {
-            KeyValueServiceInterface.CartResponse cart = keyValueService.getCart(userId);
+            Cart cart = keyValueService.getCart(userId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("items", cart.getItems());
@@ -43,7 +52,7 @@ public class CartController {
             @RequestParam String productId,
             @RequestParam(defaultValue = "1") int quantity) {
         try {
-            KeyValueServiceInterface.CartResponse cart = keyValueService.addToCart(userId, productId, quantity);
+            Cart cart = keyValueService.addToCart(userId, productId, quantity);
             
             Map<String, Object> response = new HashMap<>();
             response.put("items", cart.getItems());
@@ -67,7 +76,7 @@ public class CartController {
             @RequestParam String productId,
             @RequestParam int quantity) {
         try {
-            KeyValueServiceInterface.CartResponse cart = keyValueService.updateCartItem(userId, productId, quantity);
+            Cart cart = keyValueService.updateCartItem(userId, productId, quantity);
             
             Map<String, Object> response = new HashMap<>();
             response.put("items", cart.getItems());
@@ -90,7 +99,7 @@ public class CartController {
             @PathVariable String userId,
             @RequestParam String productId) {
         try {
-            KeyValueServiceInterface.CartResponse cart = keyValueService.removeFromCart(userId, productId);
+            Cart cart = keyValueService.removeFromCart(userId, productId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("items", cart.getItems());
@@ -111,7 +120,7 @@ public class CartController {
     @DeleteMapping("/{userId}/clear")
     public ResponseEntity<Map<String, Object>> clearCart(@PathVariable String userId) {
         try {
-            KeyValueServiceInterface.CartResponse cart = keyValueService.clearCart(userId);
+            Cart cart = keyValueService.clearCart(userId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("items", cart.getItems());

@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.aerospike.model.Cart;
+import com.aerospike.model.Product;
+
 /**
  * Interface for KeyValue operations
  * Allows multiple implementations to be swapped via Spring profiles
@@ -17,7 +20,7 @@ public interface KeyValueServiceInterface {
      * @param productId Product identifier
      * @return Optional containing the product data
      */
-    Optional<Map<String, Object>> getProduct(String productId);
+    Optional<Product> getProduct(String productId);
 
     /**
      * Performs a secondary index query on the specified index using the provided filter value
@@ -50,15 +53,7 @@ public interface KeyValueServiceInterface {
      * @param product Product data
      * @param productId Product identifier
      */
-    void storeProduct(Map<String, Object> product, String productId);
-
-    /**
-     * Gets a specific attribute from a product
-     * @param productId Product identifier
-     * @param attribute Attribute name
-     * @return Attribute value
-     */
-    Object getProductAttribute(String productId, String attribute);
+    void storeProductMap(Product product);
 
     /**
      * Gets all available categories
@@ -108,7 +103,7 @@ public interface KeyValueServiceInterface {
      * @param userId User identifier
      * @return CartResponse containing cart items and total
      */
-    CartResponse getCart(String userId);
+    Cart getCart(String userId);
 
     /**
      * Adds an item to the shopping cart
@@ -117,7 +112,7 @@ public interface KeyValueServiceInterface {
      * @param quantity Quantity to add
      * @return CartResponse with updated cart
      */
-    CartResponse addToCart(String userId, String productId, int quantity);
+    Cart addToCart(String userId, String productId, int quantity);
 
     /**
      * Updates the quantity of an item in the cart
@@ -126,7 +121,7 @@ public interface KeyValueServiceInterface {
      * @param quantity New quantity
      * @return CartResponse with updated cart
      */
-    CartResponse updateCartItem(String userId, String productId, int quantity);
+    Cart updateCartItem(String userId, String productId, int quantity);
 
     /**
      * Removes an item from the cart
@@ -134,61 +129,33 @@ public interface KeyValueServiceInterface {
      * @param productId Product identifier
      * @return CartResponse with updated cart
      */
-    CartResponse removeFromCart(String userId, String productId);
+    Cart removeFromCart(String userId, String productId);
 
     /**
      * Clears all items from the cart
      * @param userId User identifier
      * @return CartResponse with empty cart
      */
-    CartResponse clearCart(String userId);
+    Cart clearCart(String userId);
 
     /**
      * Result wrapper for query operations
      */
     class QueryResult {
-        private final List<Map<String, Object>> products;
+        private final List<Product> products;
         private final Long timeMs;
 
-        public QueryResult(List<Map<String, Object>> products, Long timeMs) {
+        public QueryResult(List<Product> products, Long timeMs) {
             this.products = products;
             this.timeMs = timeMs;
         }
 
-        public List<Map<String, Object>> getProducts() {
+        public List<Product> getProducts() {
             return products;
         }
 
         public Long getTimeMs() {
             return timeMs;
-        }
-    }
-
-    /**
-     * Response wrapper for cart operations
-     */
-    class CartResponse {
-        private final List<Map<String, Object>> items;
-        private final double total;
-
-        public CartResponse(List<Map<String, Object>> items, double total) {
-            this.items = items;
-            this.total = total;
-        }
-
-        public List<Map<String, Object>> getItems() {
-            return items;
-        }
-
-        public double getTotal() {
-            return total;
-        }
-
-        public int getItemCount() {
-            return items.stream().mapToInt(item -> {
-                Object quantityObj = item.get("quantity");
-                return quantityObj instanceof Number ? ((Number) quantityObj).intValue() : 0;
-            }).sum();
         }
     }
 }

@@ -6,11 +6,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
-
-import jakarta.annotation.PreDestroy;
 
 import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.AerospikeException;
@@ -19,6 +18,7 @@ import com.aerospike.client.Host;
 import com.aerospike.client.Key;
 import com.aerospike.client.Operation;
 import com.aerospike.client.Record;
+import com.aerospike.client.ResultCode;
 import com.aerospike.client.Value;
 import com.aerospike.client.cdt.CTX;
 import com.aerospike.client.cdt.ListOperation;
@@ -33,13 +33,20 @@ import com.aerospike.client.cdt.MapWriteFlags;
 import com.aerospike.client.exp.Exp;
 import com.aerospike.client.exp.Expression;
 import com.aerospike.client.policy.ClientPolicy;
+import com.aerospike.client.policy.GenerationPolicy;
 import com.aerospike.client.policy.QueryPolicy;
+import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.IndexType;
 import com.aerospike.client.query.RecordSet;
 import com.aerospike.client.query.Statement;
 import com.aerospike.config.ClientConfiguration;
+import com.aerospike.model.Cart;
+import com.aerospike.model.CartItem;
+import com.aerospike.model.Product;
+
+import jakarta.annotation.PreDestroy;
 
 /**
  * Old Client implementation of KeyValue operations
@@ -50,6 +57,7 @@ import com.aerospike.config.ClientConfiguration;
 @Profile("old-client")
 public class KeyValueServiceOldClient implements KeyValueServiceInterface {
 
+    private static final String ITEMS_BIN = "items";
     private static final String NAMESPACE = "test";
     private static final String PRODUCT_SET = "products";
     private static final String CARTS_SET = "shopping_carts";
@@ -60,6 +68,10 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
 
     public KeyValueServiceOldClient(ClientConfiguration config) {
         ClientPolicy clientPolicy = new ClientPolicy();
+        if (!(config.getUserName() == null || config.getUserName().isEmpty())) {
+            clientPolicy.setUser(config.getUserName());
+            clientPolicy.setPassword(config.getPassword());
+        }
         aerospikeClient = new AerospikeClient(clientPolicy, new Host(config.getHostname(), config.getPort()));
     }
 
@@ -87,11 +99,11 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
      * @param productId Product identifier
      * @return Map containing the product data
      */
-    public Optional<Map<String, Object>> getProduct(String productId) {
+    public Optional<Product> getProduct(String productId) {
         Key key = new Key(NAMESPACE, PRODUCT_SET, productId);
         Record record = aerospikeClient.get(null, key);
     
-        return Optional.ofNullable(record.bins);
+        return Optional.ofNullable(Product.fromMap(record.bins));
     }
 
     /**
@@ -123,10 +135,10 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
         QueryPolicy queryPolicy = aerospikeClient.copyQueryPolicyDefault();
         RecordSet recordSet = aerospikeClient.query(queryPolicy, statement);
         
-        List<Map<String, Object>> products = new ArrayList<>();
+        List<Product> products = new ArrayList<>();
         while (recordSet.next()) {
             Record record = recordSet.getRecord();
-            products.add(record.bins);
+            products.add(Product.fromMap(record.bins));
         }
         
         return new KeyValueServiceInterface.QueryResult(products, System.currentTimeMillis() - startTime);
@@ -247,39 +259,21 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
      * @param product Product data map
      * @param productId Product identifier
      */
-    public void storeProduct(Map<String, Object> product, String productId) {
-        Key key = new Key(NAMESPACE, PRODUCT_SET, productId);
+    public void storeProductMap(Product product) {
+        Key key = new Key(NAMESPACE, PRODUCT_SET, product.getId());
         WritePolicy writePolicy = aerospikeClient.copyWritePolicyDefault();
         
-        aerospikeClient.put(writePolicy, key, getBins(product));
-    }
-
-//    /**
-//     * Get a specific attribute of a product
-//     * Equivalent to the Python get_product_attribute function
-//     * 
-//     * @param productId Product identifier
-//     * @param attribute Name of the attribute to retrieve
-//     * @return The attribute value
-//     */
-    public Object getProductAttribute(String productId, String attribute) {
-        Key key = new Key(NAMESPACE, PRODUCT_SET, productId);
-        Record record = aerospikeClient.get(null, key, attribute);
-        
-        if (record != null && record.bins.containsKey(attribute)) {
-            return record.bins.get(attribute);
-        }
-        return null;
+        aerospikeClient.put(writePolicy, key, getBins(Product.toMap(product)));
     }
 
     /**
      * Convert a product map to Aerospike bins
      */
-    private Bin[] getBins(Map<String, Object> product) {
+    private Bin[] getBins(Map<String, Value> product) {
         List<Bin> bins = new ArrayList<>();
         
-        for (Map.Entry<String, Object> entry : product.entrySet()) {
-            bins.add(new Bin(entry.getKey(), Value.get(entry.getValue())));
+        for (Map.Entry<String, Value> entry : product.entrySet()) {
+            bins.add(new Bin(entry.getKey(), entry.getValue()));
         }
         
         return bins.toArray(new Bin[0]);
@@ -350,10 +344,10 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
         
         RecordSet recordSet = aerospikeClient.query(queryPolicy, statement);
         
-        List<Map<String, Object>> products = new ArrayList<>();
+        List<Product> products = new ArrayList<>();
         while (recordSet.next()) {
             Record record = recordSet.getRecord();
-            products.add(record.bins);
+            products.add(Product.fromMap(record.bins));
         }
         
         long endTime = System.currentTimeMillis() - startTime;
@@ -377,146 +371,145 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
     }
 
     // Cart operations
-    public KeyValueServiceInterface.CartResponse getCart(String userId) {
+    public Cart getCart(String userId) {
         try {
             Key key = new Key(NAMESPACE, CARTS_SET, userId);
             Record record = aerospikeClient.get(null, key);
             
             if (record == null) {
-                return new KeyValueServiceInterface.CartResponse(new ArrayList<>(), 0.0);
+                return new Cart();
             }
             
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> items = (List<Map<String, Object>>) record.getValue("items");
-            if (items == null) {
-                items = new ArrayList<>();
-            }
+            return Cart.fromMap(record.bins);
             
-            double total = calculateCartTotal(items);
-            return new KeyValueServiceInterface.CartResponse(items, total);
         } catch (Exception e) {
             System.err.println("Error getting cart: " + e.getMessage());
-            return new KeyValueServiceInterface.CartResponse(new ArrayList<>(), 0.0);
+            return new Cart();
         }
     }
 
-    public KeyValueServiceInterface.CartResponse addToCart(String userId, String productId, int quantity) {
+    public Cart addToCart(String userId, String productId, int quantity) {
         try {
             // Get product details first
-            Optional<Map<String, Object>> productOptional = getProduct(productId);
+            Optional<Product> productOptional = getProduct(productId);
             
-            Map<String, Object> product = productOptional
+            Product product = productOptional
                     .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
 
             Key key = new Key(NAMESPACE, CARTS_SET, userId);
-            
-            // Create cart item
-            Map<String, Object> cartItem = new HashMap<>();
-            cartItem.put("productId", productId);
-            cartItem.put("name", product.get("name"));
-            cartItem.put("price", product.get("price"));
-            cartItem.put("brandName", product.get("brandName"));
-            cartItem.put("quantity", quantity);
+            Cart cart;
             
             // Get product image
             String image = extractProductImage(product);
-            if (image != null) {
-                cartItem.put("image", image);
-            }
+            while (true) {
+                // Check if item already exists in cart
+                Record existingRecord = aerospikeClient.get(null, key);
 
-            // Check if item already exists in cart
-            Record existingRecord = aerospikeClient.get(null, key);
-            List<Map<String, Object>> items = new ArrayList<>();
-            
-            if (existingRecord != null) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> existingItems = (List<Map<String, Object>>) existingRecord.getValue("items");
-                if (existingItems != null) {
-                    items = new ArrayList<>(existingItems);
+                WritePolicy writePolicy = aerospikeClient.copyWritePolicyDefault();
+
+                AtomicBoolean existing = new AtomicBoolean(false);
+                int totalQuantity = quantity;
+                cart = null;
+                CartItem thisItem;
+                if (existingRecord != null) {
+                    writePolicy.generation = existingRecord.generation;
+                    writePolicy.generationPolicy = GenerationPolicy.EXPECT_GEN_EQUAL;
+                    
+                    cart = Cart.fromMap(existingRecord.bins);
+                    thisItem = cart.findItem(productId)
+                        .map(item -> {
+                            item.setQuantity(item.getQuantity() + quantity);
+                            existing.set(true);
+                            return item;
+                        })
+                        .orElseGet(() -> {
+                            return new CartItem(userId, totalQuantity, image, product);
+                        });
                 }
-            }
-
-            // Find existing item or add new one
-            boolean found = false;
-            for (Map<String, Object> item : items) {
-                if (productId.equals(item.get("productId"))) {
-                    int currentQty = ((Number) item.get("quantity")).intValue();
-                    item.put("quantity", currentQty + quantity);
-                    found = true;
+                else {
+                    writePolicy.recordExistsAction = RecordExistsAction.CREATE_ONLY;
+                    thisItem = new CartItem(userId, totalQuantity, image, product);
+                }
+                
+                MapPolicy mapPolicy = new MapPolicy(MapOrder.KEY_ORDERED, MapWriteFlags.DEFAULT);
+                try {
+                    if (existing.get()) {
+                        aerospikeClient.operate(writePolicy, key, 
+                                MapOperation.increment(mapPolicy, ITEMS_BIN, Value.get("quantity"), 
+                                        Value.get(quantity), CTX.mapKey(Value.get(productId))));
+                    }
+                    else {
+                        if (cart == null) {
+                            cart = new Cart();
+                        }
+                        cart.add(thisItem);
+                        aerospikeClient.operate(writePolicy, key,
+                                MapOperation.put(mapPolicy, ITEMS_BIN, 
+                                        Value.get(productId), Value.get(CartItem.toMap(thisItem))));
+                        
+                    }
                     break;
                 }
-            }
-            
-            if (!found) {
-                items.add(cartItem);
+                catch (AerospikeException ae) {
+                    // If it's a generation error, retry
+                    if (ae.getResultCode() != ResultCode.GENERATION_ERROR) {
+                        throw ae;
+                    }
+                }
             }
 
-            // Save updated cart
-            WritePolicy writePolicy = new WritePolicy();
-            Bin itemsBin = new Bin("items", Value.get(items));
-            aerospikeClient.put(writePolicy, key, itemsBin);
-
-            double total = calculateCartTotal(items);
-            return new KeyValueServiceInterface.CartResponse(items, total);
+            return cart;
         } catch (Exception e) {
             System.err.println("Error adding to cart: " + e.getMessage());
             throw new RuntimeException("Failed to add item to cart: " + e.getMessage());
         }
     }
 
-    public KeyValueServiceInterface.CartResponse updateCartItem(String userId, String productId, int quantity) {
+    public Cart updateCartItem(String userId, String productId, int quantity) {
         try {
             Key key = new Key(NAMESPACE, CARTS_SET, userId);
             Record record = aerospikeClient.get(null, key);
             
             if (record == null) {
-                return new KeyValueServiceInterface.CartResponse(new ArrayList<>(), 0.0);
+                return new Cart();
             }
             
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> items = (List<Map<String, Object>>) record.getValue("items");
-            if (items == null) {
-                items = new ArrayList<>();
-            }
+            Cart cart = Cart.fromMap(record.bins);
 
-            // Update or remove item
-            items = new ArrayList<>(items); // Make mutable copy
+            WritePolicy writePolicy = aerospikeClient.copyWritePolicyDefault();
+
             if (quantity <= 0) {
-                items.removeIf(item -> productId.equals(item.get("productId")));
-            } else {
-                for (Map<String, Object> item : items) {
-                    if (productId.equals(item.get("productId"))) {
-                        item.put("quantity", quantity);
-                        break;
-                    }
-                }
+                cart.remove(productId);
+                aerospikeClient.operate(writePolicy, key, 
+                        MapOperation.removeByKey(ITEMS_BIN, Value.get(productId), MapReturnType.NONE));
             }
-
-            // Save updated cart
-            WritePolicy writePolicy = new WritePolicy();
-            Bin itemsBin = new Bin("items", Value.get(items));
-            aerospikeClient.put(writePolicy, key, itemsBin);
-
-            double total = calculateCartTotal(items);
-            return new KeyValueServiceInterface.CartResponse(items, total);
+            else {
+                MapPolicy mapPolicy = new MapPolicy(MapOrder.KEY_ORDERED, MapWriteFlags.DEFAULT);
+                cart.findItem(productId)
+                    .ifPresent(item -> {
+                        item.setQuantity(quantity);
+                        aerospikeClient.operate(writePolicy, key,
+                                MapOperation.put(mapPolicy, ITEMS_BIN, Value.get("quantity"), Value.get(quantity), CTX.mapKey(Value.get(productId))));
+                    });
+            }
+            return cart;
         } catch (Exception e) {
             System.err.println("Error updating cart item: " + e.getMessage());
             throw new RuntimeException("Failed to update cart item: " + e.getMessage());
         }
     }
 
-    public KeyValueServiceInterface.CartResponse removeFromCart(String userId, String productId) {
+    public Cart removeFromCart(String userId, String productId) {
         return updateCartItem(userId, productId, 0);
     }
 
-    public KeyValueServiceInterface.CartResponse clearCart(String userId) {
+    public Cart clearCart(String userId) {
         try {
             Key key = new Key(NAMESPACE, CARTS_SET, userId);
-            WritePolicy writePolicy = new WritePolicy();
-            Bin itemsBin = new Bin("items", Value.get(new ArrayList<>()));
-            aerospikeClient.put(writePolicy, key, itemsBin);
+            WritePolicy writePolicy = aerospikeClient.copyWritePolicyDefault();
+            aerospikeClient.operate(writePolicy, key, MapOperation.clear(ITEMS_BIN));
             
-            return new KeyValueServiceInterface.CartResponse(new ArrayList<>(), 0.0);
+            return new Cart();
         } catch (Exception e) {
             System.err.println("Error clearing cart: " + e.getMessage());
             throw new RuntimeException("Failed to clear cart: " + e.getMessage());
@@ -527,9 +520,9 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
      * Extracts product image URL from the product data structure
      * Tries search/resolutions/125X161 first, then front/resolutions/125X161
      */
-    private String extractProductImage(Map<String, Object> product) {
+    private String extractProductImage(Product product) {
         @SuppressWarnings("unchecked")
-        Map<String, Object> images = (Map<String, Object>) product.get("images");
+        Map<String, Object> images = product.getImages();
         if (images == null) {
             return null;
         }
@@ -564,27 +557,4 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
         Object result = current.get(path[path.length - 1]);
         return result instanceof String ? (String) result : null;
     }
-
-    private double calculateCartTotal(List<Map<String, Object>> items) {
-        return items.stream()
-                .mapToDouble(item -> {
-                    Object priceObj = item.get("price");
-                    Object quantityObj = item.get("quantity");
-                    
-                    double price = 0.0;
-                    int quantity = 0;
-                    
-                    if (priceObj instanceof Number) {
-                        price = ((Number) priceObj).doubleValue();
-                    }
-                    
-                    if (quantityObj instanceof Number) {
-                        quantity = ((Number) quantityObj).intValue();
-                    }
-                    
-                    return price * quantity;
-                })
-                .sum();
-    }
-    
-} 
+}
