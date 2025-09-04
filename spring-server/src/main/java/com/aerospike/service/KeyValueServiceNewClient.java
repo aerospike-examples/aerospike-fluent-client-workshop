@@ -47,7 +47,7 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
     private static final String CATEGORY_SET = "cat_index";
     private static final String CATEGORY_KEY = "product_meta";
 
-    private final Cluster aerospikeCluseter;
+    private final Cluster aerospikeCluster;
     
     private final TypeSafeDataSet<Product> productDataSet = new TypeSafeDataSet<>(NAMESPACE, PRODUCT_SET, Product.class);
     private final TypeSafeDataSet<CartItem> cartDataSet = new TypeSafeDataSet<>(NAMESPACE, CARTS_SET, CartItem.class);
@@ -104,16 +104,16 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
     }
     
     public KeyValueServiceNewClient(ClientConfiguration config) {
-        aerospikeCluseter = new ClusterDefinition(config.getHostname(), config.getPort())
+        aerospikeCluster = new ClusterDefinition(config.getHostname(), config.getPort())
                 .withNativeCredentials(config.getUserName(), config.getPassword())
                 .connect();
         
-        aerospikeCluseter.setRecordMappingFactory(DefaultRecordMappingFactory.of(
+        aerospikeCluster.setRecordMappingFactory(DefaultRecordMappingFactory.of(
                     Product.class, new ProductMapper(),
                     CartItem.class, new CartItemMapper(),
                     Cart.class, new CartMapper()
                 ));
-        session = aerospikeCluseter.createSession(Behavior.DEFAULT);
+        session = aerospikeCluster.createSession(Behavior.DEFAULT);
     }
 
     /**
@@ -122,8 +122,8 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
      */
     @PreDestroy
     public void cleanup() {
-        if (aerospikeCluseter != null) {
-            aerospikeCluseter.close();
+        if (aerospikeCluster != null) {
+            aerospikeCluster.close();
         }
     }
 

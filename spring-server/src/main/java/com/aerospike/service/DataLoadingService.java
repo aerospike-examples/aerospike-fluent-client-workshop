@@ -8,6 +8,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.stereotype.Service;
 
+import com.aerospike.model.Product;
+
 /**
  * Service to load product data from JSON files into Aerospike
  * Equivalent to the Python load_data.py module (simplified for key-value only)
@@ -75,7 +77,7 @@ public class DataLoadingService {
         loadProductCategories(productMap);
         
         // Store the product in Aerospike
-        keyValueService.storeProductMap(productMap, productId);
+        keyValueService.storeProductMap(Product.fromMap(productMap));
     }
 
     /**
