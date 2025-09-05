@@ -77,7 +77,7 @@ public class DataLoadingService {
         loadProductCategories(productMap);
         
         // Store the product in Aerospike
-        keyValueService.storeProductMap(Product.fromMap(productMap));
+        keyValueService.storeProduct(Product.fromMap(productMap));
     }
 
     /**

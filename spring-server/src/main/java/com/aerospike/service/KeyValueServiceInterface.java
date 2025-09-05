@@ -53,7 +53,7 @@ public interface KeyValueServiceInterface {
      * @param product Product data
      * @param productId Product identifier
      */
-    void storeProductMap(Product product);
+    void storeProduct(Product product);
 
     /**
      * Gets all available categories

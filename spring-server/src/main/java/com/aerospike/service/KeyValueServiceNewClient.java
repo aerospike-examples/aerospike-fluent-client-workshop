@@ -261,7 +261,7 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
      * @param product Product data map
      * @param productId Product identifier
      */
-    public void storeProductMap(Product product) {
+    public void storeProduct(Product product) {
         session.insertInto(productDataSet)
                 .object(product)
                 .using(productMapper)
@@ -304,6 +304,8 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
                 dsl += String.format("$.%s == '%s'", thisEntry.getKey(), thisEntry.getValue());
             }
         }
+        
+        System.out.println("DSL: " + dsl);
         
         List<Product> products = session.query(productDataSet)
                 .where(dsl)

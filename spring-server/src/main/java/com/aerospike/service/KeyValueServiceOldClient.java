@@ -102,7 +102,9 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
     public Optional<Product> getProduct(String productId) {
         Key key = new Key(NAMESPACE, PRODUCT_SET, productId);
         Record record = aerospikeClient.get(null, key);
-    
+        if (record == null) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(Product.fromMap(record.bins));
     }
 
@@ -259,10 +261,10 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
      * @param product Product data map
      * @param productId Product identifier
      */
-    public void storeProductMap(Product product) {
+    public void storeProduct(Product product) {
         Key key = new Key(NAMESPACE, PRODUCT_SET, product.getId());
         WritePolicy writePolicy = aerospikeClient.copyWritePolicyDefault();
-        
+        writePolicy.recordExistsAction = RecordExistsAction.CREATE_ONLY;
         aerospikeClient.put(writePolicy, key, getBins(Product.toMap(product)));
     }
 
