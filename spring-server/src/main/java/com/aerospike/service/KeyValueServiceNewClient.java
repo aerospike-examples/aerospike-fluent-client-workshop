@@ -11,13 +11,14 @@ import org.springframework.stereotype.Service;
 import com.aerospike.Cluster;
 import com.aerospike.ClusterDefinition;
 import com.aerospike.DataSet;
-import com.aerospike.DefaultRecordMappingFactory;
 import com.aerospike.RecordMapper;
+import com.aerospike.RecordStream.ObjectWithMetadata;
 import com.aerospike.Session;
 import com.aerospike.TypeSafeDataSet;
 import com.aerospike.client.AerospikeException;
 import com.aerospike.client.Key;
 import com.aerospike.client.Log;
+import com.aerospike.client.Record;
 import com.aerospike.client.Value;
 import com.aerospike.client.cdt.MapOrder;
 import com.aerospike.client.query.IndexType;
@@ -56,83 +57,16 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
     private final ProductMapper productMapper = new ProductMapper();
     private final CartItemMapper cartItemMapper = new CartItemMapper();
     private final CartMapper cartMapper = new CartMapper();
-
-    private static class ProductMapper implements RecordMapper<Product> {
-        @Override
-        public Product fromMap(Map<String, Object> map, Key recordKey, int generation) {
-            return Product.fromMap(map);
-        }
-        @Override
-        public Map<String, Value> toMap(Product element) {
-            return Product.toMap(element);
-        }
-        @Override
-        public Object id(Product product) {
-            return product.getId();
-        }
-    }
-    
-    private static class CartMapper implements RecordMapper<Cart> {
-
-        @Override
-        public Cart fromMap(Map<String, Object> map, Key recordKey, int generation) {
-            return Cart.fromMap(map);
-        }
-        @Override
-        public Map<String, Value> toMap(Cart element) {
-            return Cart.toMap(element);
-        }
-        @Override
-        public Object id(Cart element) {
-            return null;
-        }
-    }
-    
-    private static class CartItemMapper implements RecordMapper<CartItem> {
-        @Override
-        public CartItem fromMap(Map<String, Object> map, Key recordKey, int generation) {
-            return CartItem.fromMap(map);
-        }
-        @Override
-        public Map<String, Value> toMap(CartItem element) {
-            return CartItem.toMap(element);
-        }
-        @Override
-        public Object id(CartItem element) {
-            return element.getUserId();
-        }
-    }
     
     public KeyValueServiceNewClient(ClientConfiguration config) {
-        aerospikeCluster = new ClusterDefinition(config.getHostname(), config.getPort())
-                .withNativeCredentials(config.getUserName(), config.getPassword())
-                .connect();
+        // TODO: Connect to the cluster at (config.hostname, config.port)
+        // with the userid and password passed in the config.
+        aerospikeCluster = null;
         
-        aerospikeCluster.setRecordMappingFactory(DefaultRecordMappingFactory.of(
-                    Product.class, new ProductMapper(),
-                    CartItem.class, new CartItemMapper(),
-                    Cart.class, new CartMapper()
-                ));
-        session = aerospikeCluster.createSession(Behavior.DEFAULT);
+        // TODO: Create a session off the cluster using the defaults behaviour
+        session = null;
     }
 
-    /**
-     * Cleanup method called when the service is destroyed
-     * Properly closes the AerospikeClient connection
-     */
-    @PreDestroy
-    public void cleanup() {
-        if (aerospikeCluster != null) {
-            aerospikeCluster.close();
-        }
-    }
-
-    public void clearAllData() {
-        session.truncate(cartDataSet);
-        session.truncate(productDataSet);
-        session.delete(categoryDataSet.id(CATEGORY_KEY));
-    }
-    
     /**
      * Key-Value lookup of a specified product
      * Gets the product record and returns the record bins
@@ -141,9 +75,55 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
      * @return Map containing the product data
      */
     public Optional<Product> getProduct(String productId) {
-        return session.query(productDataSet.id(productId))
-                .execute()
-                .getFirst(productMapper);
+        // TODO: replace with code to load a product from Aerospike 
+        String imageURL = "http://assets.myntassets.com/v1/images"
+                + "/style/properties/a6901996f4efb595e64d9a7ea76ca289_images.jpg";
+        String image = "http://assets.myntassets.com/h_161,q_95,w_125/v1/images"
+                + "/style/properties/a6901996f4efb595e64d9a7ea76ca289_images.jpg";
+        String image_small = "http://assets.myntassets.com/h_64,q_95,w_48/v1/images"
+                + "/style/properties/a6901996f4efb595e64d9a7ea76ca289_images.jpg";
+        
+        Product product =  new Product();
+        product.setAdded(1467309416);
+        product.setAgeGroup("Adults-Men");
+        product.setArticleAttr(Map.of("Strap Material", "Synthetic", "Business Unit", "NA"));
+        product.setArticleType("Watches");
+        product.setBrandName("CASIO");
+        product.setCategory("Accessories");
+        product.setColors(List.of("Black"));
+        product.setDescriptors(Map.of("description", 
+                Map.of("value", "Case style: Digital watch with a black synthetic case",
+                        "descriptorType", "description")));
+        product.setDisplayCat(List.of("Accessories"));
+        product.setGender("Men");
+        product.setId("41213");
+        product.setImages(Map.of(
+                "search", Map.of(
+                    "imageType", "search",
+                    "imageURL", imageURL,
+                    "resolutions", Map.of(
+                            "125X161", image,
+                            "46x64", image_small
+                        )
+                    ),
+                "default", Map.of(
+                        "imageType", "default", 
+                        "imageURL", imageURL,
+                        "resolutions", Map.of(
+                                "125X161", image,
+                                "46x64", image_small
+                            )
+                )
+                
+            ));
+        product.setName("Watch");
+        product.setOptions(List.of(Map.of("active", "true")));
+        product.setPrice(1295);
+        product.setSalePrice(1295);
+        product.setSeason("Summer");
+        product.setSubCategory("Watches");
+        product.setUsage("Casual");
+        return Optional.of(product);
     }
 
     /**
@@ -159,14 +139,258 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
     public KeyValueServiceInterface.QueryResult query(String index, String filterValue, int count) {
         long startTime = System.currentTimeMillis();
 
-        List<Product> products = session.query(productDataSet)
-                .where("$.%s == '%s'", index, filterValue)
-                .readingOnlyBins("id", "name", "images", "brandName")
-                .limit(count)
-                .execute()
-                .toObjectLlist(productMapper);
+        // TODO: Return the products which have the bin <indexName> set to <filterValue>.
+        // For example: bin "category" equals "Footware".
+        // Only bins "id", "name", "images", "brandName" are needed in the output
+        List<Product> products = List.of(getProduct("41213").get());
         
         return new KeyValueServiceInterface.QueryResult(products, System.currentTimeMillis() - startTime);
+    }
+
+
+    /**
+     * Advanced search with multiple filters
+     * 
+     * @param category Category filter (optional)
+     * @param articleType Article type filter (optional)
+     * @param usage Usage filter (optional)
+     * @param brandName Brand name filter (optional)
+     * @param searchText Text search query (optional)
+     * @param count Maximum number of results
+     * @return QueryResult containing filtered products
+     */
+    public KeyValueServiceInterface.QueryResult advancedSearch(String category, String articleType, String usage, String brandName, String searchText, int count) {
+        long startTime = System.currentTimeMillis();
+
+        Map<String, String> indexes = Map.of(
+                "category", asNonNullString(category), 
+                "articleType", asNonNullString(articleType), 
+                "usage", asNonNullString(usage), 
+                "brandName", asNonNullString(brandName));
+
+        // TODO: Form a a DSL string of the non-empty index filters passed. For example,
+        // if category == 'Footware' and brandName == 'Adidas' you want to form a string of:
+        // "$.category == 'Footware' and $.brandName == 'Adidas'"
+        String dsl = "";
+        
+        System.out.println("DSL: " + dsl);
+
+        // TODO: Load the products which match the DSL string formed above
+        List<Product> products = List.of(getProduct("41213").get());
+        
+        long endTime = System.currentTimeMillis() - startTime;
+        return new KeyValueServiceInterface.QueryResult(products, endTime);
+    }
+
+    /**
+     * Store a product record in Aerospike
+     * 
+     * @param product Product data map
+     * @param productId Product identifier
+     */
+    public void storeProduct(Product product) {
+        // TODO: Insert this item into the Product set. Throw an exception if it's already there.
+    }
+
+    /**
+     * Get the user's shopping cart. If the cart does not exist in the database, return 
+     * a new cart.
+     * @param userId - THe user whose cart is to be returned.
+     * @return the Cart of the user. Guaranteed to be non-null
+     */
+    public Cart getCart(String userId) {
+        try {
+            // TODO: Read the shopping cart and return it to the user. If the cart 
+            // does not exist, return an empty Cart
+            return new Cart(Map.of("41213", new CartItem(userId, 2, 
+                    "http://assets.myntassets.com/h_161,q_95,w_125/v1/images/"
+                    + "style/properties/4e98e52e6516a9f93ee70287eece69ac_images.jpg", 
+                    getProduct("41213").get())));
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Error getting cart: " + e.getMessage());
+            return new Cart();
+        }
+    }
+
+    /** 
+     * For the given userId and the given productId, if the product is already in the user's cart then
+     * increase the quantity by `quantity`. If it's not in the cart, then insert it into the cart with
+     * `quantity` as the quantity. If the record doesn't exist, then do this, creating the record if needed.
+     * <p/>
+     * Since this method can potentially be called by multiple threads at once, make sure that the cart
+     * doesn't change by external factors during this method!
+     * <P/>
+     * A cart will have a structure like:
+     * <pre>
+     * {
+     *   "items": {
+     *     "15943": {
+     *       "brandName": "Turtle",
+     *       "image": "http://assets.myntassets.com/h_161,q_95,w_125/v1/images/style/properties/403dce654df223f46677767988641d7a_images.jpg",
+     *       "name": "Turtle Men Leather Black Wallets",
+     *       "price": 995,
+     *       "productId": "15943",
+     *       "quantity": 1,
+     *       "userId": "user_uv4ytwx6h"
+     *     },
+     *     "41213": {
+     *       "brandName": "Lotto",
+     *       "image": "http://assets.myntassets.com/h_161,q_95,w_125/v1/images/style/properties/4e98e52e6516a9f93ee70287eece69ac_images.jpg",
+     *       "name": "Lotto Men Black Flip Flops",
+     *       "price": 219,
+     *       "productId": "41213",
+     *       "quantity": 4,
+     *       "userId": "user_uv4ytwx6h"
+     *     }
+     *   }
+     * }
+
+     * </pre>
+     */
+    public Cart addToCart(String userId, String productId, int quantity) {
+        try {
+            // Get product details first
+            Optional<Product> productOptional = getProduct(productId);
+            
+            Product product = productOptional
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
+
+            Key key = cartDataSet.id(userId);
+            
+            // Get product image
+            String image = extractProductImage(product);
+            Cart resultCart = null;
+            while (resultCart == null) {
+                try {
+                    // TODO: Fetch the user's cart and use `getFirstWithMetadata` to return an
+                    // Optional with the cart and record metadata details
+                    Optional<ObjectWithMetadata<Cart>>cartAndMetadata = 
+                            Optional.of(new ObjectWithMetadata(getCart(userId), new Record(null, 1, 1)));
+                    
+                    resultCart = cartAndMetadata
+                        .map(cartWithMetadata -> {
+                            Cart cart = cartWithMetadata.get();
+                            cart.findItem(productId)
+                                .ifPresentOrElse(item -> {
+                                    
+                                    // The item exists in the record, just update the quantity
+                                    item.setQuantity(item.getQuantity() + quantity);
+                                    
+                                    // TODO: On the record identified by `key`, there is a bin called `ITEMS_BIN`
+                                    // which is a map of productId -> cart items as a map. Find the item with the
+                                    // passed `productId` and add `quantity` to it's  "quantity" key. Make sure to 
+                                    // check that the record has the same generation as when it was read!
+                                },
+                                () -> {
+                                    // Record exists but item is not there, just add it
+                                    CartItem newItem = new CartItem(userId, quantity, image, product);
+                                    cart.add(newItem);
+                                    
+                                    // TODO: On the record identified by `key`, there is a bin called `ITEMS_BIN`
+                                    // which is a map of productId -> cart items as a map. However, there is no
+                                    // item with the passed `productId` in the map. Insert the `newItem` at this
+                                    // map key
+                                });
+                            return cart;
+                        })
+                        .orElseGet(() -> {
+                            // New record
+                            Cart cart = new Cart();
+                            CartItem newItem = new CartItem(userId, quantity, image, product);
+                            cart.add(newItem);
+                            // TODO: The record doesn't exist. Create the record and insert the `newItem` into 
+                            // the map with productId as it's key
+                            return cart;
+                        });
+                }
+                catch (GenerationException ge) {
+                    Log.info("Lost race condition when adding product " + productId);
+                    // Continue to retry 
+                }
+            }
+            return resultCart;
+        }  catch (Exception e) {
+            System.err.println("Error adding to cart: " + e.getMessage());
+            throw new RuntimeException("Failed to add item to cart: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Remove all items from the cart of the passed userid
+     * @param userId - the user whose cart is to be cleared
+     * @return the updated (empty) cart
+     */
+    public Cart clearCart(String userId) {
+        try {
+            Key key = cartDataSet.id(userId);
+            session.upsert(key).bin(ITEMS_BIN).mapClear().execute();
+            return new Cart();
+        } catch (Exception e) {
+            System.err.println("Error clearing cart: " + e.getMessage());
+            throw new RuntimeException("Failed to clear cart: " + e.getMessage());
+        }
+    }
+    
+
+    public Cart updateCartItem(String userId, String productId, int quantity) {
+        try {
+            Key key = cartDataSet.id(userId);
+            return session.query(key)
+                    .execute()
+                    .getFirst(cartMapper)
+                    .map(cart -> {
+                        if (quantity <= 0) {
+                            session.update(key)
+                                .bin(ITEMS_BIN).onMapKey(productId).remove()
+                                .execute();
+                            cart.remove(productId);
+                            return cart;
+                        }
+                        else {
+                            cart.findItem(productId)
+                            .ifPresent(item -> {
+                                item.setQuantity(quantity);
+                                session.update(key)
+                                    .bin(ITEMS_BIN).onMapKey(productId).onMapKey("quantity").setTo(quantity)
+                                    .execute();
+                            });
+                            return cart;
+
+                        }
+                    })
+                    .orElseGet(() -> {
+                        return new Cart();
+                    });
+        } catch (Exception e) {
+            System.err.println("Error updating cart item: " + e.getMessage());
+            throw new RuntimeException("Failed to update cart item: " + e.getMessage());
+        }
+    }
+
+    public Cart removeFromCart(String userId, String productId) {
+        return updateCartItem(userId, productId, 0);
+    }
+
+    /**
+     * Get a count of all the products in the database
+     * @return The number of products stored. 
+     */
+    public int getProductCount() {
+        int replicationFactor = session.info().namespaceDetails(NAMESPACE)
+                .map(nsDetails -> nsDetails.getEffectiveReplicationFactor())
+                .orElseGet(() -> 1);
+        return session.info()
+                .set(PRODUCT_SET)
+                .map(set->(int)set.getObjects() / replicationFactor)
+                .orElseGet(() -> 0);
+    }
+
+    public void clearAllData() {
+        session.truncate(cartDataSet);
+        session.truncate(productDataSet);
+        session.delete(categoryDataSet.id(CATEGORY_KEY));
     }
 
     /**
@@ -174,6 +398,7 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
      * 
      * @return List of category names
      */
+    @SuppressWarnings("unchecked")
     public List<String> getCategories() {
         Optional<KeyRecord> result = session.upsert(categoryDataSet.id(CATEGORY_KEY))
                 .bin("categories").onMapKeyRange("A", "Z").getKeys()
@@ -183,6 +408,7 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
                 .orElseGet(List::of);
     }
 
+    @SuppressWarnings("unchecked")
     private List<String> getCategoryPart(String bin) {
         return session.query(categoryDataSet.id(CATEGORY_KEY))
                 .readingOnlyBins(bin)
@@ -233,7 +459,7 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
      */
     public void loadCategories(String category, String subCategory, String articleType, String usage, String brandName) {
         session.upsert(categoryDataSet.id(CATEGORY_KEY))
-            .bin("category").onMapKey(category,MapOrder.KEY_ORDERED).onMapKey(subCategory).add(1)
+            .bin("categories").onMapKey(category,MapOrder.KEY_ORDERED).onMapKey(subCategory).add(1)
             .bin("articleTypes").listAppendUnique(articleType, true)
             .bin("usage").listAppendUnique(usage, true)
             .bin("brandNames").listAppendUnique(brandName, true)
@@ -254,199 +480,15 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
             System.out.println("Index " + indexName + " already exists or failed to create: " + e.getMessage());
         }
     }
-
-    /**
-     * Store a product record in Aerospike
-     * 
-     * @param product Product data map
-     * @param productId Product identifier
-     */
-    public void storeProduct(Product product) {
-        session.insertInto(productDataSet)
-                .object(product)
-                .using(productMapper)
-                .execute();
-    }
-
-    private String asNonNullString(String orig) {
-        if (orig == null ) {
-            return "";
-        }
-        return orig;
-    }
     
     /**
-     * Advanced search with multiple filters
-     * 
-     * @param category Category filter (optional)
-     * @param articleType Article type filter (optional)
-     * @param usage Usage filter (optional)
-     * @param brandName Brand name filter (optional)
-     * @param searchText Text search query (optional)
-     * @param count Maximum number of results
-     * @return QueryResult containing filtered products
+     * Cleanup method called when the service is destroyed
+     * Properly closes the AerospikeClient connection
      */
-    public KeyValueServiceInterface.QueryResult advancedSearch(String category, String articleType, String usage, String brandName, String searchText, int count) {
-        long startTime = System.currentTimeMillis();
-
-        Map<String, String> indexes = Map.of(
-                "category", asNonNullString(category), 
-                "articleType", asNonNullString(articleType), 
-                "usage", asNonNullString(usage), 
-                "brandName", asNonNullString(brandName));
-
-        String dsl = "";
-        for (Entry<String, String> thisEntry : indexes.entrySet()) {
-            if (!thisEntry.getValue().isEmpty()) {
-                if (!dsl.isEmpty()) {
-                    dsl += " and ";
-                }
-                dsl += String.format("$.%s == '%s'", thisEntry.getKey(), thisEntry.getValue());
-            }
-        }
-        
-        System.out.println("DSL: " + dsl);
-        
-        List<Product> products = session.query(productDataSet)
-                .where(dsl)
-                .limit(count)
-                .execute()
-                .toObjectLlist(productMapper);
-        
-        long endTime = System.currentTimeMillis() - startTime;
-        return new KeyValueServiceInterface.QueryResult(products, endTime);
-    }
-
-    public int getProductCount() {
-        return session.info()
-                .set(PRODUCT_SET)
-                .map(set->(int)set.getObjects())
-                .orElseGet(() -> 0);
-    }
-
-    // Cart operations
-    public Cart getCart(String userId) {
-        try {
-            return session.query(cartDataSet.id(userId))
-                .execute()
-                .getFirst(cartMapper)
-                .orElseGet(() -> new Cart());
-        } catch (Exception e) {
-            System.err.println("Error getting cart: " + e.getMessage());
-            return new Cart();
-        }
-    }
-
-    public Cart addToCart(String userId, String productId, int quantity) {
-        try {
-            // Get product details first
-            Optional<Product> productOptional = getProduct(productId);
-            
-            Product product = productOptional
-                    .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
-
-            Key key = cartDataSet.id(userId);
-//            Cart cart;
-            
-            // Get product image
-            String image = extractProductImage(product);
-            Cart resultCart = null;
-            while (resultCart == null) {
-                try {
-                    resultCart = session.query(key)
-                        .execute()
-                        .getFirstWithMetadata(cartMapper)
-                        .map(cartWithMetadata -> {
-                            Cart cart = cartWithMetadata.get();
-                            cart.findItem(productId)
-                                .ifPresentOrElse(item -> {
-                                    
-                                    // The item exists in the record, just update the quantity
-                                    item.setQuantity(item.getQuantity() + quantity);
-                                    session.update(key)
-                                        .bin(ITEMS_BIN).onMapKey(productId).onMapKey("quantity").add(quantity)
-                                        .ensureGenerationIs(cartWithMetadata.getGeneration())
-                                        .execute();
-                                },
-                                () -> {
-                                    // Record exists but item is not there, just add it
-                                    CartItem newItem = new CartItem(userId, quantity, image, product);
-                                    cart.add(newItem);
-                                    session.update(key)
-                                        .bin(ITEMS_BIN).onMapKey(productId).setTo(newItem, cartItemMapper)
-                                        .ensureGenerationIs(cartWithMetadata.getGeneration())
-                                        .execute();
-                                });
-                            return cart;
-                        })
-                        .orElseGet(() -> {
-                            // New record
-                            Cart cart = new Cart();
-                            CartItem newItem = new CartItem(userId, quantity, image, product);
-                            cart.add(newItem);
-                            session.insertInto(key)
-                                .bin(ITEMS_BIN).onMapKey(productId).setTo(newItem, cartItemMapper)
-                                .execute();
-                            return cart;
-                        });
-                }
-                catch (GenerationException ge) {
-                    Log.info("Lost race condition when adding product " + productId);
-                    // Continue to retry 
-                }
-            }
-            return resultCart;
-        }  catch (Exception e) {
-            System.err.println("Error adding to cart: " + e.getMessage());
-            throw new RuntimeException("Failed to add item to cart: " + e.getMessage());
-        }
-    }
-
-    public Cart updateCartItem(String userId, String productId, int quantity) {
-        try {
-            Key key = cartDataSet.id(userId);
-            return session.query(key)
-                    .execute()
-                    .getFirst(cartMapper)
-                    .map(cart -> {
-                        if (quantity <= 0) {
-                            session.update(key)
-                                .bin(ITEMS_BIN).onMapKey(quantity).remove();
-                            cart.remove(productId);
-                            return cart;
-                        }
-                        else {
-                            cart.findItem(productId)
-                            .ifPresent(item -> {
-                                item.setQuantity(quantity);
-                                session.update(key)
-                                    .bin(ITEMS_BIN).onMapKey("productId").add(quantity);
-                            });
-                            return cart;
-
-                        }
-                    })
-                    .orElseGet(() -> {
-                        return new Cart();
-                    });
-        } catch (Exception e) {
-            System.err.println("Error updating cart item: " + e.getMessage());
-            throw new RuntimeException("Failed to update cart item: " + e.getMessage());
-        }
-    }
-
-    public Cart removeFromCart(String userId, String productId) {
-        return updateCartItem(userId, productId, 0);
-    }
-
-    public Cart clearCart(String userId) {
-        try {
-            Key key = cartDataSet.id(userId);
-            session.upsert(key).bin(ITEMS_BIN).mapClear();
-            return new Cart();
-        } catch (Exception e) {
-            System.err.println("Error clearing cart: " + e.getMessage());
-            throw new RuntimeException("Failed to clear cart: " + e.getMessage());
+    @PreDestroy
+    public void cleanup() {
+        if (aerospikeCluster != null) {
+            aerospikeCluster.close();
         }
     }
 
@@ -455,7 +497,6 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
      * Tries search/resolutions/125X161 first, then front/resolutions/125X161
      */
     private String extractProductImage(Product product) {
-        @SuppressWarnings("unchecked")
         Map<String, Object> images = (Map<String, Object>) product.getImages();
         if (images == null) {
             return null;
@@ -492,26 +533,51 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
         return result instanceof String ? (String) result : null;
     }
 
-    private double calculateCartTotal(List<Map<String, Object>> items) {
-        return items.stream()
-                .mapToDouble(item -> {
-                    Object priceObj = item.get("price");
-                    Object quantityObj = item.get("quantity");
-                    
-                    double price = 0.0;
-                    int quantity = 0;
-                    
-                    if (priceObj instanceof Number) {
-                        price = ((Number) priceObj).doubleValue();
-                    }
-                    
-                    if (quantityObj instanceof Number) {
-                        quantity = ((Number) quantityObj).intValue();
-                    }
-                    
-                    return price * quantity;
-                })
-                .sum();
+    private static class ProductMapper implements RecordMapper<Product> {
+        @Override
+        public Product fromMap(Map<String, Object> map, Key recordKey, int generation) {
+            return Product.fromMap(map);
+        }
+        @Override
+        public Map<String, Value> toMap(Product element) {
+            return Product.toMap(element);
+        }
+        @Override
+        public Object id(Product product) {
+            return product.getId();
+        }
     }
+    
+    private static class CartMapper implements RecordMapper<Cart> {
+
+        @Override
+        public Cart fromMap(Map<String, Object> map, Key recordKey, int generation) {
+            return Cart.fromMap(map);
+        }
+        @Override
+        public Map<String, Value> toMap(Cart element) {
+            return Cart.toMap(element);
+        }
+        @Override
+        public Object id(Cart element) {
+            return null;
+        }
+    }
+    
+    private static class CartItemMapper implements RecordMapper<CartItem> {
+        @Override
+        public CartItem fromMap(Map<String, Object> map, Key recordKey, int generation) {
+            return CartItem.fromMap(map);
+        }
+        @Override
+        public Map<String, Value> toMap(CartItem element) {
+            return CartItem.toMap(element);
+        }
+        @Override
+        public Object id(CartItem element) {
+            return element.getUserId();
+        }
+    }
+
     
 } 

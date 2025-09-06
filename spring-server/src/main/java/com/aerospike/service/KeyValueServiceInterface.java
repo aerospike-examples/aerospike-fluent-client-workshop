@@ -158,4 +158,13 @@ public interface KeyValueServiceInterface {
             return timeMs;
         }
     }
+    
+    default String asNonNullString(String orig) {
+        if (orig == null ) {
+            return "";
+        }
+        return orig;
+    }
+    
+
 }

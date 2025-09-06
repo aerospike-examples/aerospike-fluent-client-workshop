@@ -151,6 +151,7 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
      * 
      * @return List of category names
      */
+    @SuppressWarnings("unchecked")
     public List<String> getCategories() {
         Key key = new Key(NAMESPACE, CATEGORY_SET, CATEGORY_KEY);
         Record categories = aerospikeClient.operate(null, key, MapOperation.getByKeyRange("categories", Value.get("A"), Value.get("Z"), MapReturnType.KEY));
@@ -162,6 +163,7 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
      * 
      * @return List of article type names
      */
+    @SuppressWarnings("unchecked")
     public List<String> getArticleTypes() {
         Key key = new Key(NAMESPACE, CATEGORY_SET, CATEGORY_KEY);
         Record categories = aerospikeClient.get(null, key, "articleTypes");
@@ -173,6 +175,7 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
      * 
      * @return List of usage names
      */
+    @SuppressWarnings("unchecked")
     public List<String> getUsage() {
         Key key = new Key(NAMESPACE, CATEGORY_SET, CATEGORY_KEY);
         Record categories = aerospikeClient.get(null, key, "usage");
@@ -187,6 +190,7 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
      * 
      * @return List of brand names
      */
+    @SuppressWarnings("unchecked")
     public List<String> getBrandNames() {
         Key key = new Key(NAMESPACE, CATEGORY_SET, CATEGORY_KEY);
         Record categories = aerospikeClient.get(null, key, "brandNames");
@@ -281,13 +285,6 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
         return bins.toArray(new Bin[0]);
     }
 
-    private String asNonNullString(String orig) {
-        if (orig == null ) {
-            return "";
-        }
-        return orig;
-    }
-    
     /**
      * Advanced search with multiple filters
      * 
@@ -523,7 +520,6 @@ public class KeyValueServiceOldClient implements KeyValueServiceInterface {
      * Tries search/resolutions/125X161 first, then front/resolutions/125X161
      */
     private String extractProductImage(Product product) {
-        @SuppressWarnings("unchecked")
         Map<String, Object> images = product.getImages();
         if (images == null) {
             return null;
