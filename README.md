@@ -60,7 +60,7 @@ To run locally:
     ```
 
 5. Run the application
-    Once this is done, start the Java application against your database 
+    Once this is done, start the Java application against your database (ensure you're still in the spring-server directory)
     ```bash
     java -jar target/retail-demo-spring-1.0.0.jar
     ```
