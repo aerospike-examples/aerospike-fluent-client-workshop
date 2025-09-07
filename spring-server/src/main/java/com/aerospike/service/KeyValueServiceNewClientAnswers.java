@@ -59,10 +59,17 @@ public class KeyValueServiceNewClientAnswers implements KeyValueServiceInterface
     private final CartMapper cartMapper = new CartMapper();
     
     public KeyValueServiceNewClientAnswers(ClientConfiguration config) {
-        aerospikeCluster = new ClusterDefinition(config.getHostname(), config.getPort())
+        ClusterDefinition definition = new ClusterDefinition(config.getHostname(), config.getPort())
                 .withNativeCredentials(config.getUserName(), config.getPassword())
-                .withLogLevel(Level.DEBUG)
-                .connect();
+                .withLogLevel(Level.DEBUG);
+        
+        if (config.getTlsCaFile() != null || config.getTlsName() != null) {
+            definition.withTlsConfigOf()
+                .caFile(config.getTlsCaFile())
+                .tlsName(config.getTlsName())
+            .done();
+        }
+        aerospikeCluster = definition.connect();
         
         session = aerospikeCluster.createSession(Behavior.DEFAULT);
     }

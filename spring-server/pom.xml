@@ -50,10 +50,8 @@
             <groupId>com.aerospike</groupId>
             <artifactId>aerospike-fluent-client</artifactId>
             <version>${aerospike-fluent.version}</version>
-            <!--
             <scope>system</scope>
             <systemPath>${project.basedir}/../external_jars/aerospike-fluent-client-0.8.0-jar-with-dependencies.jar</systemPath>
-            -->
         </dependency>
 
         <!-- JSON Processing -->
