@@ -59,8 +59,15 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
     private final CartMapper cartMapper = new CartMapper();
     
     public KeyValueServiceNewClient(ClientConfiguration config) {
-        // TODO: Connect to the cluster at (config.hostname, config.port)
-        // with the userid and password passed in the config.
+        // =================================================================================
+        // TODO: STEP 1: CONNECT TO THE DATABASE
+        // =================================================================================
+        // Define the cluster connection and assign it to the `aerospikeCluster` variable.
+        //
+        // Refer to the documentation for the `ClusterDefinition` class to see how to
+        // configure the connection. You will need to provide the hostname, port, and
+        // user credentials, which are all available in the `config` object.
+        // =================================================================================
         aerospikeCluster = null;
         
         // TODO: Create a session off the cluster using the defaults behaviour
@@ -75,7 +82,17 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
      * @return Map containing the product data
      */
     public Optional<Product> getProduct(String productId) {
-        // TODO: replace with code to load a product from Aerospike 
+        // =================================================================================
+        // TODO: STEP 4: GET A PRODUCT BY ID
+        // =================================================================================
+        // Implement the logic to fetch a single product by its `productId`.
+        //
+        // This is a key-value lookup. Your goal is to:
+        //  - Query the `productDataSet` using the `id()` method with the `productId`.
+        //  - Execute the query.
+        //  - Get the first record from the result set.
+        //  - Use the `productMapper` to convert the record into a `Product` object.
+        // =================================================================================
         String imageURL = "http://assets.myntassets.com/v1/images"
                 + "/style/properties/a6901996f4efb595e64d9a7ea76ca289_images.jpg";
         String image = "http://assets.myntassets.com/h_161,q_95,w_125/v1/images"
@@ -139,9 +156,20 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
     public KeyValueServiceInterface.QueryResult query(String index, String filterValue, int count) {
         long startTime = System.currentTimeMillis();
 
-        // TODO: Return the products which have the bin <indexName> set to <filterValue>.
-        // For example: bin "category" equals "Footware".
-        // Only bins "id", "name", "images", "brandName" are needed in the output
+        // =================================================================================
+        // TODO: STEP 3: QUERY FOR PRODUCTS
+        // =================================================================================
+        // Implement the logic to query for a list of products.
+        //
+        // Refer to the documentation on how to build a query using the `session` object.
+        // Your goal is to:
+        //  - Query the `productDataSet`.
+        //  - Filter results using the `where` clause. The `index` and `filterValue` parameters
+        //    will be used to construct the filter expression. (For example: bin "category" equals "Footware".)
+        //  - Limit the results to `count`.
+        //  - Optimize the query to only read the "id", "name", "images", and "brandName" bins.
+        //  - Convert the final result into a `List<Product>` and assign it to the `products` variable.
+        // =================================================================================
         List<Product> products = List.of(getProduct("41213").get());
         
         return new KeyValueServiceInterface.QueryResult(products, System.currentTimeMillis() - startTime);
@@ -168,14 +196,34 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
                 "usage", asNonNullString(usage), 
                 "brandName", asNonNullString(brandName));
 
-        // TODO: Form a a DSL string of the non-empty index filters passed. For example,
+        // =================================================================================
+        // TODO: STEP 5: BUILD THE DSL STRING
+        // =================================================================================
+        // Form a a DSL string of the non-empty index filters passed. For example,
         // if category == 'Footware' and brandName == 'Adidas' you want to form a string of:
         // "$.category == 'Footware' and $.brandName == 'Adidas'"
+        // Your goal is to:
+        //  - Use the map above to form a `dsl` string with the non-empty clauses AND'ed
+        //    together.
+        //  - Assign the result to the `dsl` variable.
+        // =================================================================================
         String dsl = "";
         
         System.out.println("DSL: " + dsl);
 
-        // TODO: Load the products which match the DSL string formed above
+        // =================================================================================
+        // TODO: STEP 6: EXECUTE THE ADVANCED SEARCH
+        // =================================================================================
+        // The DSL query string has been built by you. Now, execute the query.
+        //
+        // Your goal is to:
+        //  - Use the `session` object to query the `productDataSet`.
+        //  - Apply the pre-built `dsl` string using the `.where()` clause.
+        //  - Limit the results to `count`.
+        //  - Execute the query and convert the result to a list of `Product` objects
+        //    using the `productMapper`.
+        //  - Assign the result to the `products` variable.
+        // =================================================================================
         List<Product> products = List.of(getProduct("41213").get());
         
         long endTime = System.currentTimeMillis() - startTime;
@@ -189,7 +237,19 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
      * @param productId Product identifier
      */
     public void storeProduct(Product product) {
-        // TODO: Insert this item into the Product set. Throw an exception if it's already there.
+        // =================================================================================
+        // TODO: STEP 2: STORE A PRODUCT OBJECT
+        // =================================================================================
+        // Implement the logic to store a `Product` object in the database.
+        //
+        // This task tests the client's object mapping capabilities. Your goal is to:
+        //  - Use the `session` object to `insertInto` the `productDataSet`.
+        //  - Pass the `product` object to the operation.
+        //  - Specify the `productMapper` to handle the conversion.
+        //  - Execute the operation.
+        //  - Throw an exception if it's already there.
+        // =================================================================================
+        // <-- Your code goes here
     }
 
     /**
@@ -200,8 +260,18 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
      */
     public Cart getCart(String userId) {
         try {
-            // TODO: Read the shopping cart and return it to the user. If the cart 
-            // does not exist, return an empty Cart
+            // =================================================================================
+            // TODO: STEP 7: GET THE CART OBJECT
+            // =================================================================================
+            // Implement the logic to query a `Cart` object in the database by key
+            //
+            // This task tests the client's object mapping capabilities. Your goal is to:
+            //  - Use the `session` object to `query` the `cartDataSet`.
+            //  - Pass the `userId` object to the operation.
+            //  - Execute the operation.
+            //  - Return the first one, or if there isn't one an empty cart.
+            // =================================================================================
+            // <-- Your code goes here
             return new Cart(Map.of("41213", new CartItem(userId, 2, 
                     "http://assets.myntassets.com/h_161,q_95,w_125/v1/images/"
                     + "style/properties/4e98e52e6516a9f93ee70287eece69ac_images.jpg", 
@@ -246,7 +316,6 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
      *     }
      *   }
      * }
-
      * </pre>
      */
     public Cart addToCart(String userId, String productId, int quantity) {
@@ -264,10 +333,29 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
             Cart resultCart = null;
             while (resultCart == null) {
                 try {
-                    // TODO: Fetch the user's cart and use `getFirstWithMetadata` to return an
+                    // =================================================================================
+                    // TODO: STEP 8: UPDATE THE CART
+                    // =================================================================================
+                    // Implement the logic to query a `Cart` object in the database by key
+                    //
+                    // Your goal is to:
+                    // Step 8a:
+                    //  - Retrieve the user's cart, using the `key`
+                    //  - Return the first one (with it's metadata) and map it to a cart (with metadata)
+                    // Step 8b:
+                    //  - Increase the quantity associated with the passed product on this user's cart
+                    //  - Make sure to check the generation has not changed since the record was read
+                    // Step 8c:
+                    //  - Add the item to the cart in the ITEMS_BIN at the key `productId`
+                    //  - Make sure to check the generation has not changed since the record was read
+                    // Step 8d:
+                    //  - Insert the item to the cart in the ITEMS_BIN at the key `productId` in a new record
+                    // =================================================================================
+
+                    // TODO: STEP 8a: Fetch the user's cart and use `getFirstWithMetadata` to return an
                     // Optional with the cart and record metadata details
                     Optional<ObjectWithMetadata<Cart>>cartAndMetadata = 
-                            Optional.of(new ObjectWithMetadata(getCart(userId), new Record(null, 1, 1)));
+                            Optional.of(new ObjectWithMetadata<Cart>(getCart(userId), new Record(null, 1, 1)));
                     
                     resultCart = cartAndMetadata
                         .map(cartWithMetadata -> {
@@ -278,7 +366,7 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
                                     // The item exists in the record, just update the quantity
                                     item.setQuantity(item.getQuantity() + quantity);
                                     
-                                    // TODO: On the record identified by `key`, there is a bin called `ITEMS_BIN`
+                                    // TODO: STEP 8b: On the record identified by `key`, there is a bin called `ITEMS_BIN`
                                     // which is a map of productId -> cart items as a map. Find the item with the
                                     // passed `productId` and add `quantity` to it's  "quantity" key. Make sure to 
                                     // check that the record has the same generation as when it was read!
@@ -288,7 +376,7 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
                                     CartItem newItem = new CartItem(userId, quantity, image, product);
                                     cart.add(newItem);
                                     
-                                    // TODO: On the record identified by `key`, there is a bin called `ITEMS_BIN`
+                                    // TODO: STEP 8c: On the record identified by `key`, there is a bin called `ITEMS_BIN`
                                     // which is a map of productId -> cart items as a map. However, there is no
                                     // item with the passed `productId` in the map. Insert the `newItem` at this
                                     // map key
@@ -300,7 +388,7 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
                             Cart cart = new Cart();
                             CartItem newItem = new CartItem(userId, quantity, image, product);
                             cart.add(newItem);
-                            // TODO: The record doesn't exist. Create the record and insert the `newItem` into 
+                            // TODO: STEP 8d: The record doesn't exist. Create the record and insert the `newItem` into 
                             // the map with productId as it's key
                             return cart;
                         });
