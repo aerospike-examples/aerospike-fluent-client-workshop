@@ -37,7 +37,7 @@ import jakarta.annotation.PreDestroy;
  */
 @Service
 @Profile("new-client")
-public class KeyValueServiceNewClient implements KeyValueServiceInterface {
+public class KeyValueServiceNewClient_Usability implements KeyValueServiceInterface {
 
     private static final String ITEMS_BIN = "items";
     private static final String NAMESPACE = "test";
@@ -102,7 +102,7 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
         }
     }
     
-    public KeyValueServiceNewClient(ClientConfiguration config) {
+    public KeyValueServiceNewClient_Usability(ClientConfiguration config) {
         // =================================================================================
         // STEP 1: CONNECT TO THE DATABASE
         // =================================================================================
@@ -300,13 +300,6 @@ public class KeyValueServiceNewClient implements KeyValueServiceInterface {
         // <-- Your code goes here
     }
 
-    private String asNonNullString(String orig) {
-        if (orig == null ) {
-            return "";
-        }
-        return orig;
-    }
-    
     /**
      * Advanced search with multiple filters
      * 
